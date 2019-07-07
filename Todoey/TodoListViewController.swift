@@ -10,7 +10,7 @@ import UIKit
 
 class TodoListViewController: UITableViewController {
     
-    let todoArray = ["Hello World", "What are you doing", "I hope this works lol"]
+    var itemArray = ["Hello World", "What are you doing", "I hope this works lol"]
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -19,12 +19,12 @@ class TodoListViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
-        cell.textLabel?.text = todoArray[indexPath.row]
+        cell.textLabel?.text = itemArray[indexPath.row]
         return cell
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return todoArray.count
+        return itemArray.count
     }
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -37,5 +37,29 @@ class TodoListViewController: UITableViewController {
 
         tableView.deselectRow(at: indexPath, animated: true)
     }
+
+    @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
+        
+        var textField = UITextField()
+        
+        let alert = UIAlertController(title: "Add new item", message: "", preferredStyle: .alert)
+        
+        let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
+        //what we will do when the user clicks the add new item button in the alert
+            self.itemArray.append(textField.text!)
+            
+            self.tableView.reloadData()
+        }
+        
+        alert.addTextField { (alertTextField) in
+            alertTextField.placeholder = "Create new item"
+            textField = alertTextField
+        }
+        
+        alert.addAction(action)
+
+        present(alert, animated: true, completion: nil)
+    }
+    
 }
 
