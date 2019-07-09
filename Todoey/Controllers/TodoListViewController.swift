@@ -7,19 +7,23 @@
 //
 
 import UIKit
+import CoreData
 
 class TodoListViewController: UITableViewController {
     
-//    let defaults = UserDefaults.standard
+    let directoryPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
     
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Items.plist")
+    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     var itemArray = [Item]()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view.
+        
         loadData()
+        
+        print(directoryPath)
         
     }
     
@@ -60,9 +64,10 @@ class TodoListViewController: UITableViewController {
         let action = UIAlertAction(title: "Add Item", style: .default) { (action) in
         //what we will do when the user clicks the add new item button in the alert
             
-            let newItem = Item()
+            let newItem = Item(context: self.context)
             
             newItem.title = textField.text!
+            newItem.done = false
             
             self.itemArray.append(newItem)
             
@@ -80,27 +85,49 @@ class TodoListViewController: UITableViewController {
     }
     
     func saveData() {
-        let encoder = PropertyListEncoder()
         
         do {
-            let data = try encoder.encode(itemArray)
-            try data.write(to: dataFilePath!)
+            try context.save()
         } catch {
-            print("Error encoding the item array, \(error)")
+            print("Error saving context, \(error)")
         }
         tableView.reloadData()
     }
     
-    func loadData() {
-        if let data = try? Data(contentsOf: dataFilePath!){
-            let decoder = PropertyListDecoder()
-            do {
-                itemArray = try decoder.decode([Item].self, from: data)
-            } catch {
-                print("Error decoding item array, \(error)")
-            }
+    func loadData(with request: NSFetchRequest<Item> = Item.fetchRequest()) {
+        do {
+            itemArray = try context.fetch(request)
+        } catch {
+            print("Error fetching the data, \(error)")
         }
+        
+        tableView.reloadData()
     }
     
 }
 
+extension TodoListViewController : UISearchBarDelegate {
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        let request : NSFetchRequest<Item> = Item.fetchRequest()
+        
+        //this will adjust what the query will look for using NSPredicate regex
+        request.predicate = NSPredicate(format: "title CONTAINS[cd] %@", searchBar.text!)
+        
+        //this will toggle a sort on th query so it comes in ascending order
+        request.sortDescriptors = [NSSortDescriptor(key: "title", ascending: true)]
+        
+        //now we load the data with this custom request as the argument
+        loadData(with: request)
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        if (searchBar.text?.count == 0) {
+            loadData()
+            
+            //this will take the cursor away from the search bar immediately after pressing the "X" on the searchbar. Async will allow this to be performed in the backgroun so it does not stop any other operations
+            DispatchQueue.main.async {
+                searchBar.resignFirstResponder()
+            }
+        }
+    }
+}
