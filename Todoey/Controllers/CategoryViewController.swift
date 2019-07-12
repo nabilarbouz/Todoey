@@ -57,8 +57,6 @@ class CategoryViewController: UITableViewController {
         }
     }
     
-    
-    
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
         
         var textField = UITextField()
