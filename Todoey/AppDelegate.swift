@@ -18,19 +18,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
-        let data = Data()
-        
-        data.name = "Nabil"
-        data.age = 15
         
         do {
-            let realm = try Realm()
-            try realm.write {
-                realm.add(data)
-            }
+            _ = try Realm()
         }catch {
                 print("error loading the realm instance: \(error)")
             }
+        
+        print(Realm.Configuration.defaultConfiguration.fileURL!)
         
         return true
     }
