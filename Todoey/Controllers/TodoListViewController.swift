@@ -7,17 +7,19 @@
 //
 
 import UIKit
-import CoreData
 import RealmSwift
+import ChameleonFramework
 
-class TodoListViewController: UITableViewController {
+class TodoListViewController: SwipeTableViewController {
     
-    let directoryPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
+    //let directoryPath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)
     
 //    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     let realm = try! Realm()
     
     var todoItems : Results<Item>?
+    
+    @IBOutlet var searchBar: UISearchBar!
     
     var selectedCategory : Category? {
         didSet {
@@ -32,19 +34,58 @@ class TodoListViewController: UITableViewController {
         
         loadItems()
         
-        print(directoryPath)
+        tableView.rowHeight = 80.0
+        tableView.separatorStyle = .none
+    
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        title = selectedCategory?.name
         
+        guard let colorHex = selectedCategory?.backgroundColor else {fatalError()}
+        
+        updateNavBar(withHexCode: colorHex)
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        updateNavBar(withHexCode: "1D9BF6")
+    }
+    
+    func updateNavBar(withHexCode colorHexCode : String) {
+        guard let navBar = navigationController?.navigationBar else {fatalError()}
+        
+        guard let navBarColor = UIColor(hexString: colorHexCode) else {fatalError()}
+        
+        //this changes the color of the navigation bar background color
+        navBar.barTintColor = navBarColor
+        
+        //this makes the buttons on navigation bar the contrast color of the background
+        navBar.tintColor = ContrastColorOf(navBarColor, returnFlat: true)
+        
+        //once we have made the titles bigger through the main story board -> nav controler -> nav bar -> prefer larger titles, we can make sure that title text is the contrast of the navbar background color
+        navBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : ContrastColorOf(navBarColor, returnFlat: true)]
+        
+        searchBar.barTintColor = navBarColor
     }
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         
-        let cell = tableView.dequeueReusableCell(withIdentifier: "TodoItemCell", for: indexPath)
+        let cell = super.tableView(tableView, cellForRowAt: indexPath)
         
-        let item = todoItems?[indexPath.row]
+        if let item = todoItems?[indexPath.row] {
         
-        cell.textLabel?.text = item?.title ?? "No items added yet"
-        
-        //cell.accessoryType = item?.done ? .checkmark : .none ??
+            cell.textLabel?.text = item.title
+            cell.accessoryType = item.done ? .checkmark : .none
+
+            if let color = HexColor(selectedCategory!.backgroundColor)?.darken(byPercentage: CGFloat(indexPath.row) / CGFloat(todoItems!.count)) {
+                
+                cell.backgroundColor = color
+                cell.textLabel?.textColor = ContrastColorOf(color, returnFlat: true)
+                
+            }
+        } else {
+            cell.textLabel?.text = "No items added yet"
+        }
         
         return cell
     }
@@ -120,6 +161,18 @@ class TodoListViewController: UITableViewController {
         todoItems = selectedCategory?.items.sorted(byKeyPath: "title", ascending: true)
       
         tableView.reloadData()
+    }
+    
+    override func updateModel(at indexPath: IndexPath) {
+        if let itemToDelete = self.todoItems?[indexPath.row] {
+            do {
+                try self.realm.write {
+                    self.realm.delete(itemToDelete)
+                }
+            } catch {
+                print("Unable to delete item: \(error)")
+            }
+        }
     }
     
 }
